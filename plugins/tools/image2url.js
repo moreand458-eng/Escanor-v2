@@ -1,0 +1,40 @@
+import fs from 'fs';
+import axios from 'axios';
+import FormData from 'form-data';
+import { uploadToQuax } from "../../system/utils.js";
+
+const handler = async (m, { conn, command }) => {
+  const q = m.quoted ? m.quoted : m;
+  const mime = (q.msg || q).mimetype || '';
+
+  if (!mime) throw '*❲ ❤️ ❳ ~ اعمل ريبلاي علي الصوره او الفيديو أو الصوت ~ ❲ 💙 ❳ *';
+  
+  const media = await q.download();
+  const link = await uploadToQuax(media);
+  
+  await conn.sendButton(m.chat, {
+    imageUrl: link,
+    bodyText: "🗃️ ~ Successful *(catbox.moe)*\n- ```" + link + "```",
+    footerText: "ESCANOR ~ ESC1",
+    buttons: [
+      { name: "cta_copy", params: { display_text: "Copy Link", copy_code: link } },
+    ],
+    mentions: [m.sender],
+    newsletter: {
+      name: '𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️',
+      jid: '120363422581600030@newsletter'
+    },
+    interactiveConfig: {
+      buttons_limits: 10,
+      list_title: "𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️",
+      button_title: "Click Here",
+      canonical_url: "https://escanor-profile.vercel.app"
+    }
+  }, m);
+};
+
+handler.usage = ["لرابط"];
+handler.category = "tools";
+handler.command = ['لرابط', 'image2url'];
+
+export default handler;
