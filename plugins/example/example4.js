@@ -5,7 +5,7 @@ await conn.sendCarousel(m.chat, {
   globalFooterText: 'Swipe to see more →',
   cards: [
     {
-      imageUrl: 'https://g.top4top.io/p_3700yob0b1.jpg',
+      imageUrl: 'https://i.postimg.cc/XJX2cRJc/0af18dd2b2543651464204773234c433.jpg',
       bodyText: '*Anime Girl 1*',
       footerText: '🌸 Cute anime style',
       buttons: [
