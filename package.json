@@ -1,0 +1,29 @@
+{
+  "name": "ESCANOR bot",
+  "version": "2.0.0",
+  "description": "Simple WhatsApp bot, Modified by VENi - youssefv",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["whatsapp-bot", "pomni-ai"],
+  "author": "ESCANOR - abdo",
+  "license": "MIT",
+  "dependencies": {
+    "esewsub": "https://github.com/moreand458-eng/esewsub/tarball/main",
+    "sharp": "https://github.com/moreand458-eng/sharp-tmx/tarball/main",
+    "cheerio": "1.0.0-rc.12",
+    "chokidar": "^5.0.0",
+    "file-type": "^18.0.0",
+    "form-data": "^4.0.5",
+    "qs": "*",
+    "wa-sticker-formatter": "^4.3.2"
+  },
+  "overrides": {
+    "sharp": "https://github.com/moreand458-eng/sharp-tmx/tarball/main",
+    "*": {
+      "sharp": "https://github.com/moreand458-eng/sharp-tmx/tarball/main"
+    }
+  }
+}
