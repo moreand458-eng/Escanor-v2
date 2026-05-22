@@ -7,7 +7,7 @@ const handler = async (m, { conn, bot, text, command, args }) => {
 
         const base = bot.config?.commandsPath || './plugins';
 
-        // ======= عرض قائمة الملفات =======
+        // ── عرض قائمة الملفات ──
         if (!text || text.trim() === 'list') {
             const allFiles = [];
             const walk = (dir) => {
@@ -20,11 +20,18 @@ const handler = async (m, { conn, bot, text, command, args }) => {
             walk(base);
 
             return m.reply(
-`📂 *ملفات البوت المتاحة:*\n\n${allFiles.map((f, i) => `${i + 1}. \`${f}\``).join('\n')}\n\n> طريقة التعديل:\n> *.${command} اسم_الملف | الكود الجديد*\n> مثال: .${command} menu2 | // كود هنا`
+`╮••─๋︩︪──๋︩︪─═⊐‹📂›⊏═─๋︩︪──๋︩︪─┈☇
+╿↵ *ملفات البوت المتاحة*
+┤─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪─☇ـ
+${allFiles.map((f, i) => `> │┊ ۬.͜ـ📄˖ ⟨${i + 1}. ${f}☇`).join('\n')}
+┤└─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪☇ـ
+╯─ׅ─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═─๋︩︪─⊰ـ
+> *طريقة التعديل:*
+> .${command} اسم_الملف | الكود الجديد`.trim()
             );
         }
 
-        // ======= قراءة ملف فقط =======
+        // ── قراءة ملف ──
         if (text.startsWith('read ')) {
             const targetName = text.slice(5).trim().replace(/\.js$/, '');
             const filePath = findFile(base, targetName);
@@ -34,15 +41,56 @@ const handler = async (m, { conn, bot, text, command, args }) => {
             const lines = content.split('\n');
 
             return m.reply(
-`📄 *${path.relative(base, filePath)}* (${lines.length} سطر)\n\n\`\`\`javascript\n${content.slice(0, 3000)}${content.length > 3000 ? '\n... (باقي الكود اطول)' : ''}\n\`\`\``
+`╮••─๋︩︪──๋︩︪─═⊐‹📄›⊏═─๋︩︪──๋︩︪─┈☇
+╿↵ *${path.relative(base, filePath)}* — ${lines.length} سطر
+┤─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪─☇ـ
+\`\`\`javascript
+${content.slice(0, 3000)}${content.length > 3000 ? '\n... (باقي الكود أطول)' : ''}
+\`\`\`
+╯─ׅ─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═─๋︩︪─⊰ـ`.trim()
             );
         }
 
-        // ======= تعديل الملف =======
-        // الصيغة: .editcode اسم_الملف | الكود الجديد
+        // ── استرجاع نسخة احتياطية ──
+        if (text.startsWith('restore ')) {
+            const targetName = text.slice(8).trim().replace(/\.js$/, '');
+            const backupDir = path.join(process.cwd(), 'backups');
+
+            if (!fs.existsSync(backupDir)) return m.reply('❌ مفيش نسخ احتياطية.');
+
+            const backups = fs.readdirSync(backupDir)
+                .filter(f => f.startsWith(targetName + '_') && f.endsWith('.js.bak'))
+                .sort()
+                .reverse();
+
+            if (!backups.length) return m.reply(`❌ مفيش نسخة احتياطية للملف: ${targetName}`);
+
+            const latestBackup = path.join(backupDir, backups[0]);
+            const filePath = findFile(base, targetName);
+            if (!filePath) return m.reply(`❌ مش لاقي الملف الأصلي: ${targetName}.js`);
+
+            fs.copyFileSync(latestBackup, filePath);
+            return m.reply(
+`╮••─๋︩︪──๋︩︪─═⊐‹✅›⊏═─๋︩︪──๋︩︪─┈☇
+╿↵ *تم الاسترجاع بنجاح*
+┤─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪─☇ـ
+> │┊ ۬.͜ـ📄˖ ⟨الملف: ${targetName}.js☇
+> │┊ ۬.͜ـ⚡˖ ⟨اعمل .restart عشان التغييرات تتطبق☇
+╯─ׅ─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═─๋︩︪─⊰ـ`.trim()
+            );
+        }
+
+        // ── تعديل الملف ──
         const sepIndex = text.indexOf('|');
         if (sepIndex === -1) return m.reply(
-`_🕸 طريقه الاستخدام:_\n\n*.${command} اسم_الملف | الكود_الجديد*\n\n📌 أوامر تانية:\n> *.${command} list* — عرض كل الملفات\n> *.${command} read اسم_الملف* — قراءة ملف\n> *.${command} restore اسم_الملف* — استرجاع نسخة احتياطية`
+`╮••─๋︩︪──๋︩︪─═⊐‹🕸›⊏═─๋︩︪──๋︩︪─┈☇
+╿↵ *طريقة الاستخدام*
+┤─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪─☇ـ
+> │┊ ۬.͜ـ✏️˖ ⟨تعديل: .${command} اسم_الملف | الكود☇
+> │┊ ۬.͜ـ📂˖ ⟨قائمة: .${command} list☇
+> │┊ ۬.͜ـ📄˖ ⟨قراءة: .${command} read اسم_الملف☇
+> │┊ ۬.͜ـ♻️˖ ⟨استرجاع: .${command} restore اسم_الملف☇
+╯─ׅ─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═─๋︩︪─⊰ـ`.trim()
         );
 
         const targetName = text.slice(0, sepIndex).trim().replace(/\.js$/, '');
@@ -54,7 +102,7 @@ const handler = async (m, { conn, bot, text, command, args }) => {
         const filePath = findFile(base, targetName);
         if (!filePath) return m.reply(`❌ مش لاقي الملف: ${targetName}.js`);
 
-        // عمل نسخة احتياطية
+        // نسخة احتياطية
         const backupDir = path.join(process.cwd(), 'backups');
         if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 
@@ -62,43 +110,25 @@ const handler = async (m, { conn, bot, text, command, args }) => {
         const backupPath = path.join(backupDir, `${targetName}_${Date.now()}.js.bak`);
         fs.writeFileSync(backupPath, oldContent, 'utf-8');
 
-        // كتابة الكود الجديد
         fs.writeFileSync(filePath, newCode, 'utf-8');
 
         const relativePath = path.relative(base, filePath);
 
-        await m.reply(
-`✅ *تم تعديل الملف بنجاح!*\n\n📄 الملف: \`${relativePath}\`\n📦 نسخة احتياطية اتحفظت\n⚡ اعمل *.restart* عشان التغييرات تتطبق`
+        return m.reply(
+`╮••─๋︩︪──๋︩︪─═⊐‹✅›⊏═─๋︩︪──๋︩︪─┈☇
+╿↵ *تم تعديل الملف بنجاح*
+┤─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪─☇ـ
+> │┊ ۬.͜ـ📄˖ ⟨الملف: ${relativePath}☇
+> │┊ ۬.͜ـ📦˖ ⟨نسخة احتياطية اتحفظت☇
+> │┊ ۬.͜ـ⚡˖ ⟨اعمل .restart عشان التغييرات تتطبق☇
+╯─ׅ─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═─๋︩︪─⊰ـ`.trim()
         );
-
-        // ======= استرجاع نسخة احتياطية =======
-    } else if (text?.startsWith('restore ')) {
-        const targetName = text.slice(8).trim().replace(/\.js$/, '');
-        const backupDir = path.join(process.cwd(), 'backups');
-
-        if (!fs.existsSync(backupDir)) return m.reply('❌ مفيش نسخ احتياطية.');
-
-        const backups = fs.readdirSync(backupDir)
-            .filter(f => f.startsWith(targetName + '_') && f.endsWith('.js.bak'))
-            .sort()
-            .reverse();
-
-        if (!backups.length) return m.reply(`❌ مفيش نسخة احتياطية للملف: ${targetName}`);
-
-        const latestBackup = path.join(backupDir, backups[0]);
-        const filePath = findFile(base, targetName);
-        if (!filePath) return m.reply(`❌ مش لاقي الملف الأصلي: ${targetName}.js`);
-
-        fs.copyFileSync(latestBackup, filePath);
-        await m.reply(`✅ تم الاسترجاع من النسخة الاحتياطية!\n📄 الملف: \`${targetName}.js\`\n⚡ اعمل *.restart* عشان التغييرات تتطبق`);
-    }
 
     } catch (error) {
         return m.reply(`❌ خطأ:\n\`\`\`${error.message}\`\`\``);
     }
 };
 
-// دالة البحث عن الملف في كل المجلدات
 const findFile = (base, name) => {
     const search = (dir) => {
         if (!fs.existsSync(dir)) return null;
