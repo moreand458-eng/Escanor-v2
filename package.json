@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": ["whatsapp-bot", "pomni-ai"],
+  "keywords": [
+    "whatsapp-bot",
+    "pomni-ai"
+  ],
   "author": "ESCANOR - abdo",
   "license": "MIT",
   "dependencies": {
