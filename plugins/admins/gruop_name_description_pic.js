@@ -41,7 +41,7 @@ const handler = async (m, { conn, text, command }) => {
 
 handler.command = ['جروب_اسم', 'جروب_وصف', 'جروب_صوره'];
 handler.usage = ['جروب_اسم', 'جروب_وصف', 'جروب_صوره'];
-handler.category = "admin";
+handler.category = "admins";
 handler.group = true;
 handler.admin = true;
 handler.botAdmin = true;

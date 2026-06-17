@@ -38,7 +38,7 @@ const h =  async (m, { text, bot, conn }) => {
 }
 
 h.usage = ["مخفي"]
-h.category = "admin";
+h.category = "admins";
 h.command = ['مخفي', 'h']
 h.group = true;
 h.admin = true;

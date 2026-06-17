@@ -1,42 +1,42 @@
-const handler = async (m, { conn, args }) => {
-const metadata = await conn.groupMetadata(m.chat);
-const participants = metadata.participants;
-const groupAdmins = participants.filter(p => p.admin).map(p => p.id);
-const groupMembers = participants.filter(p => !p.admin).map(p => p.id);
+// منشن الأعضاء - مع rate limit لتجنب spam
+const cooldown = new Map();
+const COOLDOWN_MS = 60 * 1000; // مرة كل دقيقة بس
 
-const shuffledAdmins = [...groupAdmins].sort(() => Math.random() - 0.5);
-const shuffledMembers = [...groupMembers].sort(() => Math.random() - 0.5);
+const handler = async (m, { conn }) => {
+    if (!m.isGroup) return m.reply('*❌ الأمر ده في الجروبات بس*');
 
-let messageText = "";
-messageText += `🗃️│ الـاســم: ${metadata.subject}\n`;
-messageText += `📯│ تـاريـخ: ${new Date().toLocaleDateString('ar-EG')}\n\n`;
+    // rate limit
+    const now = Date.now();
+    const last = cooldown.get(m.chat) || 0;
+    if (now - last < COOLDOWN_MS) {
+        const rem = Math.ceil((COOLDOWN_MS - (now - last)) / 1000);
+        return m.reply(`*⏳ انتظر ${rem} ثانية قبل المنشن تاني*`);
+    }
+    cooldown.set(m.chat, now);
 
+    const metadata = await conn.groupMetadata(m.chat);
+    const participants = metadata.participants;
 
-messageText += `↓👑 *الـمـشـرفـيـن (${shuffledAdmins.length})* 👑↓\n`;
-messageText += "```───────────────────\n";
-shuffledAdmins.forEach((admin, index) => {
-    messageText += `🇩🇪│ ${index + 1}. @${admin.split('@')[0]}\n`;
-});
-messageText += "───────────────────```\n\n";
+    const admins  = participants.filter(p => p.admin).map(p => p.id);
+    const members = participants.filter(p => !p.admin).map(p => p.id);
 
-messageText += `↓👥 *الاعـضـاء (${shuffledMembers.length})* 👥↓\n`;
-messageText += "```───────────────────\n";
-shuffledMembers.forEach((member, index) => {
-    messageText += `│ ${index + 1}. @${member.split('@')[0]}\n`;
-});
-messageText += "───────────────────```\n\n";
+    let text = '';
+    text += `🗃️│ الاسم: ${metadata.subject}\n`;
+    text += `📯│ التاريخ: ${new Date().toLocaleDateString('ar-EG')}\n\n`;
+    text += `👑 *المشرفين (${admins.length})*\n`;
+    admins.forEach((id, i) => { text += `🔰│ ${i+1}. @${id.split('@')[0]}\n`; });
+    text += `\n👥 *الأعضاء (${members.length})*\n`;
+    members.forEach((id, i) => { text += `│ ${i+1}. @${id.split('@')[0]}\n`; });
+    text += `\n> *الإجمالي: ${participants.length}*`;
 
-messageText += `> *إجمالي المشاركين — ${participants.length}*`;
-
-return conn.sendMessage(m.chat, { 
-    text: messageText, 
-    mentions: participants.map(p => p.id)
-});
+    return conn.sendMessage(m.chat, {
+        text,
+        mentions: participants.map(p => p.id)
+    }, { quoted: m });
 };
 
-handler.usage = ["منشن"]
-handler.category = "admin";
-handler.command = ["منشن", "منشنز", "mention"];
-handler.admin = true;
-
+handler.usage    = ['منشن'];
+handler.category = 'admins';
+handler.command  = ['منشن', 'منشنز', 'mention'];
+handler.admin    = true;
 export default handler;

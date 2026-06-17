@@ -20,7 +20,7 @@ const handler = async (m, { conn }) => {
 
 handler.command = ["اقبل_ريكوستات"];
 handler.usage = ['اقبل_ريكوستات', 'اقبل_الطلبات'];
-handler.category = "admin";
+handler.category = "admins";
 handler.admin = true;
 handler.botAdmin = true
 
