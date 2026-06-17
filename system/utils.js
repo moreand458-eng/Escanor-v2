@@ -32,18 +32,52 @@ async function gifToMp4(url) {
   const gifPath = path.join(tmp, `${id}.gif`);
   const mp4Path = path.join(tmp, `${id}.mp4`);
   
-  const writer = fs.createWriteStream(gifPath);
-  const res = await axios({ url, responseType: 'stream' });
-  res.data.pipe(writer);
-  await new Promise(r => writer.on('finish', r));
-  
-  await execAsync(`ffmpeg -i "${gifPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p "${mp4Path}"`);
-  
-  const buffer = fs.readFileSync(mp4Path);
-  fs.unlinkSync(gifPath);
-  fs.unlinkSync(mp4Path);
-  
-  return buffer;
+  try {
+    const writer = fs.createWriteStream(gifPath);
+    const res = await axios({ url, responseType: 'stream' });
+    res.data.pipe(writer);
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+    
+    // استخدم -y لاستبدال الملف ولا تطبع كل الـ output
+    await execAsync(
+      `ffmpeg -y -i "${gifPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -loglevel error "${mp4Path}"`
+    );
+    
+    const buffer = fs.readFileSync(mp4Path);
+    return buffer;
+  } finally {
+    if (fs.existsSync(gifPath)) fs.unlinkSync(gifPath);
+    if (fs.existsSync(mp4Path)) fs.unlinkSync(mp4Path);
+  }
+}
+
+/* ========== Anime GIF API ========= */
+
+async function AnimeGif(type) {
+  // نجرب otakugifs أولاً ثم nekos.best كـ fallback
+  const apis = [
+    async () => {
+      const res = await axios.get(`https://nekos.best/api/v2/${type}`, { timeout: 15000 });
+      const item = res.data?.results?.[0];
+      if (!item?.url) throw new Error('no url');
+      return { url: item.url, anime_name: item.anime_name || 'أنمي' };
+    },
+    async () => {
+      const res = await axios.get(`https://api.waifu.pics/sfw/${type}`, { timeout: 15000 });
+      if (!res.data?.url) throw new Error('no url');
+      return { url: res.data.url, anime_name: 'أنمي' };
+    }
+  ];
+
+  for (const api of apis) {
+    try {
+      return await api();
+    } catch {}
+  }
+  throw new Error(`فشل جلب GIF من النوع: ${type}`);
 }
 
 /* =========== CatBox =========== */
@@ -125,5 +159,6 @@ export {
   uploadTmpfiles, 
   createSticker, 
   AiChat, 
-  gifToMp4
- };
+  gifToMp4,
+  AnimeGif
+};
