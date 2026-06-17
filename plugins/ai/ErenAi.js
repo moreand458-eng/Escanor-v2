@@ -16,13 +16,17 @@ const handler = async (m, { conn, text, bot }) => {
 ${text}
 `;
 
-  const { data: res } = await Scrapy.ZeroAI(text, prompt);
-
-  await conn.sendMessage(m.chat, {
-    text: res.answer,
+  try {
+    const { data: res } = await Scrapy.ZeroAI(text, prompt);
+    const answer = res?.answer || res?.text || res?.reply || 'مفيش رد وصل، جرب تاني.';
+    await conn.sendMessage(m.chat, {
+    text: answer,
     edit: loadingMsg.key,
     contextInfo: context(m.sender, "https://qu.ax/x/4Hnbh.jpg")
   });
+  } catch (e) {
+    await conn.sendMessage(m.chat, { text: '❌ فشل الاتصال بالـ AI، جرب مرة تانية.', edit: loadingMsg.key });
+  }
 };
 
 handler.usage = ["إيرن"];

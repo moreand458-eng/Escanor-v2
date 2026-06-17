@@ -8,6 +8,6 @@ const handler = async (m, { conn, text, bot }) => {
 
 handler.usage = ["بوت"];
 handler.category = "ai";
-handler.command = ["بوت"];
+handler.command = ["ذكاء", "ai", "gpt"];
 
 export default handler;
