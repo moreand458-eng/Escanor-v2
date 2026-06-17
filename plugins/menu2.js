@@ -6,14 +6,20 @@ const CATEGORIES = [
     [5,  'امـثـلـه',             'example',   '✳️'],
     [6,  'الـادوات',             'tools',     '🛠'],
     [7,  'الـبـحـث',             'search',    '🌐'],
-    [8,  'الادمــن',             'admins',    '👨🏻‍⚖️'],
+    [8,  'المشرفين',             'admins',    '🛡️'],
     [9,  'الالــعـاب',           'game',      '🎮'],
     [10, 'الچيف',                'gif',       '✴️'],
     [11, 'الـبــنـك',            'bank',      '🏛'],
     [12, 'الـذكـاء الاصـطـنـاعـي','ai',       '🤖'],
-    [13, 'الـبـوتـات الـفـرعـي', 'subs',      '🕹'],
+    [13, 'الـبـوتـات الـفـرعـي', 'sub',      '🕹'],
     [14, 'مـعـلومـات الـبـوت',   'info',      '🗃️'],
-    [15, 'أخــرى',               'other',     '🌹']
+    [15, 'أخــرى',               'other',     '🌹'],
+    [16, 'الـتـسـلـيـة',           'fun',       '🎊'],
+    [17, 'الـديـن',               'religion',  '🕌'],
+    [18, 'الحـمـايـة',             'protection','🛡️'],
+    [19, 'الـنـقـابـات',           'guilds',    '🏰'],
+    [20, 'الـتـطـويـر',           'dev',       '⚔️'],
+    [21, 'الإعـدادات',            'settings',  '⚙️']
 ];
 
 const getCat = n => CATEGORIES.find(c => c[0] === n);
@@ -61,6 +67,7 @@ async function handler(m, { conn, bot, command, args }) {
     if (!selected && !args[0]) {
         const visibleCats = CATEGORIES.filter(c => {
             if (c[2] === 'owner') return isOwner;
+            if (c[2] === 'settings') return isOwner;
             return true;
         });
 
@@ -73,38 +80,69 @@ async function handler(m, { conn, bot, command, args }) {
             }))
         }];
 
-        const menuText = `╮••─๋︩︪──๋︩︪─═⊐‹﷽›⊏═─๋︩︪──๋︩︪─┈☇
-╿↵ مرحــبـا ⌊@${m.sender.split('@')[0]}⌉
-── • ◈ • ──
-*⌝🤖┊${bot?.config?.info?.nameBot || '𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓'}┊🤖⌞*
-╮─ׅ─๋︩︪─┈─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═┈ ─๋︩︪─ ∙ ∙ ⊰ـ
-┤─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪─☇ـ
-> │┊ ۬.͜ـ🌙˖ ⟨الاسم: ${bot?.config?.info?.nameBot || '𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓'}☇
-> │┊ ۬.͜ـ👑˖ ⟨المطور: ⌗𝐄𝐒𝐂𝐀𝐍𝛩𝐑☇
-> │┊ ۬.͜ـ🚀˖ ⟨التشغيل: ${uptimeFormatted}☇
-> │┊ ۬.͜ـ🗓˖ ⟨التاريخ: ${date}☇
-> │┊ ۬.͜ـ⏰˖ ⟨الوقت: ${time}☇
-┤└─ׅ─ׅ┈ ─๋︩︪──ׅ─ׅ┈ ─๋︩︪☇ـ
-╯─ׅ─๋︩︪─═⊐‹𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓›⊏═┈ ─๋︩︪─⊰ـ
+        // نظام الرتب
+    // ── الرتبة والمستوى ──
+    const _isOwner = bot.config.owners.some(o => m.sender === o.jid || m.sender === o.lid);
+    const xp = global.db?.users?.[m.sender]?.xp || 0;
+    const lvl = _isOwner ? 999 : (Math.floor(Math.sqrt(xp / 100)) + 1);
+    const rank = _isOwner
+        ? { n: 'رئيس', i: '👑' }
+        : (() => {
+            const ranksList = [
+                {min:1,max:5,n:'مواطن',i:'👤'},{min:6,max:10,n:'جندي',i:'🪖'},
+                {min:11,max:15,n:'عريف',i:'🎖️'},{min:16,max:20,n:'رقيب',i:'🎖️'},
+                {min:21,max:25,n:'رقيب أول',i:'🎖️'},{min:26,max:30,n:'مساعد',i:'⭐'},
+                {min:31,max:35,n:'مساعد أول',i:'⭐⭐'},{min:36,max:40,n:'ملازم',i:'🧑‍✈️'},
+                {min:41,max:45,n:'ملازم أول',i:'🧑‍✈️'},{min:46,max:55,n:'نقيب',i:'👨‍✈️'},
+                {min:56,max:65,n:'رائد',i:'👨‍✈️'},{min:66,max:75,n:'مقدم',i:'🏅'},
+                {min:76,max:90,n:'عقيد',i:'🏅'},{min:91,max:110,n:'عميد',i:'🌟'},
+                {min:111,max:130,n:'لواء',i:'🌟'},{min:131,max:160,n:'فريق',i:'⚜️'},
+                {min:161,max:200,n:'فريق أول',i:'⚜️'},{min:201,max:Infinity,n:'مشير',i:'👑'}
+            ];
+            return ranksList.find(r => lvl >= r.min && lvl <= r.max) || ranksList[0];
+        })();
+    const totalUsers = Object.keys(global.db?.users || {}).length;
+
+    const menuText = `━ ╼╃ ⌬〔﷽〕⌬ ╄╾ ━
+> 〔  الأوامــر┊ ˼‏ 🧬˹ ↶〕
+*⋅ ───━ •﹝📌﹞• ━─── ⋅*
+╗───¤﹝معلومات المستخدم ↶ 🧰﹞
+> •🪪┊الاسم: *${m.pushName || 'مجهول'}*
+> •🆙┊مستواك: *Lv ${lvl}*
+> •🧰┊الرتبة: *${rank.i} ${rank.n}*
+╗───¤﹝معلومات البوت ↶ 🤖﹞
+> •🎴┊اسم البوت: *𝐄𝐒𝐂𝐀𝐍𝛩𝐑 𝐕𝟐*
+> •🔢┊عدد المستخدمين: *${totalUsers}*
+> •👨🏻‍💻┊المطور: *𝐄𝐒𝐂𝐀𝐍𝛩𝐑*
+> •🀄┊الرقم: wa.me/201092178171
+╗───¤﹝معلومات عامه ↶ 📮﹞
+> •🌥️┊اليوم: *${now.toLocaleDateString('ar-EG', { weekday: 'long' })}*
+> •📆┊التاريخ: *${date}*
+> •⏱️┊مدة التشغيل: *${uptimeFormatted}*
+*⋅ ───━ •﹝📌﹞• ━─── ⋅*
 > *_اختار قسم من القائمة 👇_*`;
 
-        await conn.sendButtonNormal(m.chat, {
-            media: { url: "https://i.postimg.cc/NMLN73FQ/328bf8cccafe63879d903f2b99d835a0.jpg" },
-            mediaType: 'image',
-            caption: menuText,
-            buttons: [{
-                name: "single_select",
-                params: {
-                    title: "L┆ قـسـم الأوامـر ┆ꓶ",
-                    sections: sections
+        try {
+            await conn.sendButtonNormal(m.chat, {
+                media: { url: "https://i.postimg.cc/NMLN73FQ/328bf8cccafe63879d903f2b99d835a0.jpg" },
+                mediaType: 'image',
+                caption: menuText,
+                buttons: [{
+                    name: "single_select",
+                    params: {
+                        title: "L┆ قـسـم الأوامـر ┆ꓶ",
+                        sections: sections
+                    }
+                }],
+                mentions: [m.sender],
+                newsletter: {
+                    name: '𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️',
+                    jid: '120363422581600030@newsletter'
                 }
-            }],
-            mentions: [m.sender],
-            newsletter: {
-                name: '𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️',
-                jid: '120363422581600030@newsletter'
-            }
-        }, global.reply_status);
+            }, global.reply_status);
+        } catch {
+            await conn.sendMessage(m.chat, { text: menuText, contextInfo: context(m.sender, getImg(bot)) }, { quoted: m });
+        }
         return;
     }
 
@@ -151,35 +189,39 @@ ${usageList.map(u => `> │┊ ۬.͜ـ${cat[3]}˖ ⟨${u}☇`).join('\n')}
 ╯─ׅ ─๋︩︪─┈ ─๋︩︪─═⊐‹${bot?.config?.info?.nameBot || '𝐄𝐒𝐂𝐍𝐎𝐑 𝐁𝐎𝐓'}›⊏═┈ ─๋︩︪─ ∙ ∙ ⊰ـ
 > *صل علي النبي 🌺*`;
 
-    await conn.sendButtonNormal(m.chat, {
-        media: { url: getImg(bot) || "https://i.postimg.cc/NMLN73FQ/328bf8cccafe63879d903f2b99d835a0.jpg" },
-        mediaType: 'image',
-        caption: bodyText,
-        buttons: [
-            {
-                name: "single_select",
-                params: {
-                    title: `${cat[3]}┆ أوامر ${cat[1]} ┆${cat[3]}`,
-                    sections: [{
-                        title: `❪${cat[3]}┊${cat[1]}┊${cat[3]}❫`,
-                        rows: rows
-                    }]
+    try {
+        await conn.sendButtonNormal(m.chat, {
+            media: { url: getImg(bot) || "https://i.postimg.cc/NMLN73FQ/328bf8cccafe63879d903f2b99d835a0.jpg" },
+            mediaType: 'image',
+            caption: bodyText,
+            buttons: [
+                {
+                    name: "single_select",
+                    params: {
+                        title: `${cat[3]}┆ أوامر ${cat[1]} ┆${cat[3]}`,
+                        sections: [{
+                            title: `❪${cat[3]}┊${cat[1]}┊${cat[3]}❫`,
+                            rows: rows
+                        }]
+                    }
+                },
+                {
+                    name: "quick_reply",
+                    params: {
+                        display_text: '🔙 الرئيسية',
+                        id: `.${command}`
+                    }
                 }
-            },
-            {
-                name: "quick_reply",
-                params: {
-                    display_text: '🔙 الرئيسية',
-                    id: `.${command}`
-                }
+            ],
+            mentions: [m.sender],
+            newsletter: {
+                name: '𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️',
+                jid: '120363422581600030@newsletter'
             }
-        ],
-        mentions: [m.sender],
-        newsletter: {
-            name: '𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️',
-            jid: '120363422581600030@newsletter'
-        }
-    }, global.reply_status);
+        }, global.reply_status);
+    } catch {
+        await conn.sendMessage(m.chat, { text: bodyText, contextInfo: context(m.sender, getImg(bot)) }, { quoted: m });
+    }
 }
 
 handler.command = ['اوامر'];
