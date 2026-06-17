@@ -1,12 +1,14 @@
 export default async function before(m, { conn, bot }) {
-    const groups = [
-        "120363353449975838@g.us",
-        "120363418376913985@g.us"
-    ]; /* حط الجروبات الي عايز البوتات الفرعي متشتغلش فيها */
+    // الجروبات المحمية - البوتات الفرعية مش تشتغل فيها
+    const protectedGroups = [
+        '120363353449975838@g.us',
+        '120363418376913985@g.us'
+    ];
 
-    if (bot.isSubBot && groups.includes(m.chat)) {
+    if (bot.isSubBot && protectedGroups.includes(m.chat)) {
         return true;
     }
 
+    // السماح للبوتات الفرعية بكتابة الأوامر في بقية الجروبات
     return false;
 }
