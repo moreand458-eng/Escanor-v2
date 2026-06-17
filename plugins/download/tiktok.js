@@ -1,64 +1,35 @@
-import crypto from 'crypto';
-import cheerio from 'cheerio';
-import axios from 'axios';
-import qs from 'qs';
+const handler = async (m, { conn, text }) => {
+    if (!text) return m.reply('*❌ حط رابط تيك توك جنب الأمر*');
+    m.react('⏳');
 
-const ff = async (m, { text, conn }) => {
-  if (!text) return m.reply("❌: حط رابط الفيديو جنب الأمر");
-  
-  try {
-    
-    const videoData = await downloadTikTok(text);
+    try {
+        const params = new URLSearchParams({ url: text, hd: '1' });
+        const res = await fetch('https://tikwm.com/api/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                Cookie: 'current_language=en',
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 Mobile Safari/537.36'
+            },
+            body: params
+        });
+        const data = await res.json();
+        const d = data?.data;
+        if (!d?.play) throw new Error('ما قدرت أجيب الفيديو');
 
-    if (!videoData.videoUrl && !videoData.audioUrl) {
-      return m.reply("❌ Failed to download video");
+        const fileRes = await fetch(d.play, { signal: AbortSignal.timeout(60000) });
+        const buffer = Buffer.from(await fileRes.arrayBuffer());
+        await conn.sendMessage(m.chat, {
+            video: buffer, caption: `🎬 ${d.title || 'TikTok'}`, mimetype: 'video/mp4'
+        }, { quoted: m });
+        m.react('✅');
+    } catch (e) {
+        m.react('❌');
+        m.reply(`*❌ فشل التحميل:* ${e.message?.slice(0, 100)}`);
     }
-
-    if (videoData.videoUrl) {
-      await conn.sendMessage(m.chat, { video: { url: videoData.videoUrl }, caption: `🟢 ${videoData.description || "no description"}` });
-    }
-    
-    if (videoData.audioUrl) {
-      await conn.sendMessage(m.chat, { audio: { url: videoData.audioUrl }, mimetype: 'audio/mpeg' });
-    }
-    
-  } catch (error) {
-    console.error(error.message);
-    m.reply(error.message);
-  }
 };
-ff.usage = ["تيك"]
-ff.category = "downloads";
-ff.command = ["تيك", "tiktok", "tt"];
-export default ff;
 
-
-async function downloadTikTok(url) {
-
-  let data = qs.stringify({
-    'id': url,
-    'locale': 'en',
-    'tt': crypto.randomBytes(8).toString('hex'),
-  });
-
-  let config = {
-    method: 'POST',
-    url: 'https://ssstik.io/abc?url=dl',
-    headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    data: data
-  };
-
-  const response = await axios.request(config);
-  const $ = cheerio.load(response.data);
-
-  return {
-    author: $('h2').first().text().trim(),
-    description: $('.maintext').text().trim(),
-    videoUrl: $('a[href*="tikcdn.io"]:not(#hd_download)').first().attr('href'),
-    audioUrl: $('.download_link.music').attr('href'),
-    hdVideo: $('#hd_download').attr('href')
-  };
-}
+handler.usage = ['تيك'];
+handler.category = 'downloads';
+handler.command = ['تيك', 'tiktok', 'tt'];
+export default handler;

@@ -1,81 +1,33 @@
-import axios from 'axios';
-import qs from 'qs';
-import cheerio from 'cheerio';
+const handler = async (m, { conn, text, command }) => {
+    if (!text) return m.reply(`*❲ ❤️ ❳ ~ ضع رابط الفيديو بعد الأمر*\nمثال: .${command} https://www.facebook.com/reel/xxx`);
+    m.react('🌾');
 
-const handler = async (m, { conn, text, usedPrefix, command }) => {
-  if (!text) throw `*❲ ❤️ ❳ ~ ضع رابط الفيديو بعد الأمر ~ ❲ 💙 ❳ *\n\nمثال:\n/${command} https://www.facebook.com/reel/xxxxxx`;
+    try {
+        const res = await fetch(`https://fsaver.net/download/?url=${encodeURIComponent(text)}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36',
+                'Upgrade-Insecure-Requests': '1'
+            },
+            signal: AbortSignal.timeout(15000)
+        });
+        const html = await res.text();
+        const match = html.match(/class="video__item"[^>]*src="([^"]+)"/);
+        if (!match) throw new Error('ما قدرت أجيب الفيديو، تأكد من الرابط');
 
-  m.react('🌾');
-
-  try {
-    const tokenRes = await userVerify(text);
-    const htmlRes = await ajaxSearch(text, tokenRes.k_token, tokenRes.k_exp, tokenRes.token);
-    const $ = cheerio.load(htmlRes.data);
-
-    const title = $('.detail h3').text().trim() || 'Facebook Video';
-    const duration = $('.detail p').first().text().trim() || '';
-    const thumb = $('.detail .thumbnail img').attr('src') || '';
-    const downloads = [];
-
-    $('table.table tbody tr').each((_, el) => {
-      const quality = $(el).find('.video-quality').text().trim();
-      const url = $(el).find('a.download-link-fb').attr('href');
-      if (quality && url) downloads.push({ quality, url });
-    });
-
-    if (!downloads.length) throw '❌ لا يوجد فيديو متاح للتحميل';
-
-    const caption = `> *تم بواسطة ~ ${m.pushName}*`;
-
-    await conn.sendMessage(m.chat, {
-      video: { url: downloads[0].url },
-      caption
-    }, { quoted: m });
-
-  } catch (e) {
-    console.log(e.message);
-    m.react('❌');
-  }
+        const videoUrl = 'https://fsaver.net' + match[1];
+        const fileRes = await fetch(videoUrl, { signal: AbortSignal.timeout(60000) });
+        const buffer = Buffer.from(await fileRes.arrayBuffer());
+        await conn.sendMessage(m.chat, {
+            video: buffer, caption: `> *تم بواسطة ~ ${m.pushName}*`, mimetype: 'video/mp4'
+        }, { quoted: m });
+        m.react('✅');
+    } catch (e) {
+        m.react('❌');
+        m.reply(`*❌ فشل التحميل:* ${e.message?.slice(0, 100)}`);
+    }
 };
 
-handler.usage = ["فيس"]
-handler.category = "downloads";
+handler.usage = ['فيس'];
+handler.category = 'downloads';
 handler.command = /^(فيس|فيسبوك|fb|fbdl|facebook)$/i;
-
 export default handler;
-
-async function userVerify(url) {
-  const data = qs.stringify({ url });
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'Accept': '*/*',
-    'X-Requested-With': 'XMLHttpRequest',
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
-    'Referer': 'https://fdownloader.net/id'
-  };
-  const res = await axios.post('https://fdownloader.net/api/userverify', data, { headers });
-  return res.data;
-}
-
-async function ajaxSearch(query, token, exp, cftoken) {
-  const data = qs.stringify({
-    k_exp: exp,
-    k_token: token,
-    q: query,
-    lang: 'id',
-    web: 'fdownloader.net',
-    v: 'v2',
-    w: '',
-    cftoken
-  });
-
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'Accept': '*/*',
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
-    'Referer': 'https://fdownloader.net/id'
-  };
-
-  const res = await axios.post('https://v3.fdownloader.net/api/ajaxSearch', data, { headers });
-  return res.data;
-}

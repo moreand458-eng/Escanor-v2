@@ -1,96 +1,165 @@
-const handler = async (m, { conn, command, text }) => {
-  if (!text) return m.reply('*❲ ❤️ ❳ ~ حط رابط يوتيوب جنب الامر ~ ❲ 💙 ❳*');
+import crypto from 'crypto';
 
-  if (!text.match(/youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\//)) {
-    return m.reply('*❌ ~ الرابط مش صحيح ~ حط رابط يوتيوب صحيح*');
-  }
+// ===== SaveTube - MP3 / MP4 =====
+class SaveTube {
+    constructor() {
+        this.ky = 'C5D58EF67A7584E4A29F6C35BBC4EB12';
+        this.headers = {
+            'content-type': 'application/json',
+            'origin': 'https://yt.savetube.me',
+            'user-agent': 'Mozilla/5.0 (Android 15; Mobile)'
+        };
+    }
 
-  const isAudio = command === "يوت_اغنيه" || command === "ytmp3";
+    async decrypt(enc) {
+        const buf = Buffer.from(enc, 'base64');
+        const key = Buffer.from(this.ky, 'hex');
+        const iv = buf.slice(0, 16);
+        const data = buf.slice(16);
+        const decipher = crypto.createDecipheriv('aes-128-cbc', key, iv);
+        return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString());
+    }
 
-  m.react("⏳");
+    async getCdn() {
+        const res = await fetch('https://media.savetube.vip/api/random-cdn', {
+            signal: AbortSignal.timeout(10000)
+        });
+        const d = await res.json();
+        return d.cdn;
+    }
 
-  const getVideoId = (url) => {
-    const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
-    return match ? match[1] : null;
-  };
+    // downloadType: 'audio' | 'video'
+    // quality: للصوت '128'، للفيديو '720'/'480'/'360'
+    async download(url, downloadType = 'audio', quality = '128') {
+        const id = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/)?.[1];
+        if (!id) throw new Error('رابط يوتيوب غير صحيح');
 
-  const videoId = getVideoId(text);
-  if (!videoId) return m.reply('*❌ مش قادر استخرج ID من الرابط*');
+        const cdn = await this.getCdn();
+        const infoRes = await fetch(`https://${cdn}/v2/info`, {
+            method: 'POST', headers: this.headers,
+            body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${id}` }),
+            signal: AbortSignal.timeout(15000)
+        });
+        const info = await infoRes.json();
+        const dec = await this.decrypt(info.data);
 
-  let title = 'بدون عنوان';
-  let author = 'غير معروف';
-  const thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        const dlRes = await fetch(`https://${cdn}/download`, {
+            method: 'POST', headers: this.headers,
+            body: JSON.stringify({ id, downloadType, quality, key: dec.key }),
+            signal: AbortSignal.timeout(20000)
+        });
+        const dl = await dlRes.json();
+        if (!dl?.data?.downloadUrl) throw new Error('SaveTube: لا يوجد رابط تحميل');
+        return { title: dec.title, url: dl.data.downloadUrl };
+    }
+}
 
-  try {
-    const infoRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-    const info = await infoRes.json();
-    title = info?.title || title;
-    author = info?.author_name || author;
-  } catch {}
+// ===== MP4 - SaveTube أولاً (نفس طريقة الصوت الشغالة) ثم APIs احتياطية =====
+async function downloadMp4(url) {
+    const id = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/)?.[1];
+    if (!id) throw new Error('رابط يوتيوب غير صحيح');
 
-  try {
-    const apiUrl = isAudio
-      ? `https://api.agatz.xyz/api/ytmp3?url=${encodeURIComponent(text)}`
-      : `https://api.agatz.xyz/api/ytmp4?url=${encodeURIComponent(text)}`;
+    // API 1: SaveTube (نفس مكتبة الصوت الشغالة) - بنجرب جودات مختلفة
+    const st = new SaveTube();
+    for (const quality of ['720', '480', '360']) {
+        try {
+            const res = await st.download(url, 'video', quality);
+            if (res?.url) return res;
+        } catch {}
+    }
 
-    const apiRes = await fetch(apiUrl);
-    const data = await apiRes.json();
-    const downloadUrl = data?.data?.downloadUrl || data?.data?.url || data?.url;
-
-    if (!downloadUrl) return m.reply('*❌ فشل في جلب رابط التحميل، جرب تاني بعد شوية*');
-
-    const type = isAudio ? 'اغـانـي 🎵' : 'فيـديـوز 🎬';
-    const caption = `*🐞 YouTube | يـوتـيـوب ${type}*\n\n` +
-      `╭─┈─┈─┈─⟞🍧⟝─┈─┈─┈─╮\n` +
-      `*❲ 📽️ ❳ الـعـنـوان:* ${title}\n` +
-      `*❲ 📢 ❳ الـقـنـاة:* ${author}\n` +
-      `╰─┈─┈─┈─⟞🍬⟝─┈─┈─┈─╯\n` +
-      `> _*❲ ⏱️ ❳ الرجاء الانتظار قليلاً...*_`;
-
-    await conn.sendMessage(m.chat, {
-      text: caption,
-      contextInfo: {
-        mentionedJid: [m.sender],
-        isForwarded: true,
-        forwardingScore: 1,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: '120363422581600030@newsletter',
-          newsletterName: '𝐄𝐒𝟏 ~ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥 🕷️',
-          serverMessageId: 0
-        },
-        externalAdReply: {
-          title,
-          body: author,
-          thumbnailUrl: thumbnail,
-          sourceUrl: '',
-          mediaType: 1,
-          renderLargerThumbnail: true
+    // API 2: y2mate
+    try {
+        const res1 = await fetch('https://www.y2mate.com/mates/analyzeV2/ajax', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `k_query=https://www.youtube.com/watch?v=${id}&k_page=home&hl=en&q_auto=0`,
+            signal: AbortSignal.timeout(15000)
+        });
+        const d1 = await res1.json();
+        const links = d1?.links?.mp4;
+        const best = links?.['720p'] || links?.['480p'] || links?.['360p'];
+        if (best?.k) {
+            const res2 = await fetch('https://www.y2mate.com/mates/convertV2/index', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `vid=${id}&k=${best.k}`,
+                signal: AbortSignal.timeout(20000)
+            });
+            const d2 = await res2.json();
+            if (d2?.dlink) return { url: d2.dlink, title: d1.title || 'YouTube Video' };
         }
-      }
-    });
+    } catch {}
 
-    await conn.sendMessage(m.chat,
-      isAudio ? {
-        audio: { url: downloadUrl },
-        mimetype: 'audio/mpeg',
-        fileName: `${title}.mp3`
-      } : {
-        video: { url: downloadUrl },
-        caption: `*${title}*`
-      },
-      { quoted: m }
-    );
+    // API 3: cobalt instances
+    const cobaltAPIs = [
+        'https://cobalt.api.timelessnesses.me',
+        'https://api.cobalt.tools',
+        'https://cobalt.ggtyler.dev',
+    ];
+    for (const api of cobaltAPIs) {
+        try {
+            const res = await fetch(`${api}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ url, videoQuality: '720', filenameStyle: 'basic' }),
+                signal: AbortSignal.timeout(15000)
+            });
+            const data = await res.json();
+            if (data?.url) return { url: data.url, title: 'YouTube Video' };
+            if (data?.tunnel) return { url: data.tunnel, title: 'YouTube Video' };
+        } catch {}
+    }
 
-    m.react("✅");
+    // API 4: yt-dlp wrapper (emam-api)
+    try {
+        const res = await fetch(
+            `https://emam-api.web.id/home/sections/Download/api/YouTube/download?url=${encodeURIComponent(url)}&quality=720p`,
+            { signal: AbortSignal.timeout(20000) }
+        );
+        const data = await res.json();
+        if (data?.data?.url) return { url: data.data.url, title: data.data.title || 'YouTube Video' };
+    } catch {}
 
-  } catch (e) {
-    m.react("❌");
-    await m.reply(`*❌ حصل خطأ:* ${e.message}`);
-  }
+    throw new Error('فشلت كل الـ APIs، جرب بعدين');
+}
+
+const handler = async (m, { conn, command, text }) => {
+    if (!text) return m.reply('*❲ ❤️ ❳ ~ حط رابط يوتيوب جنب الامر*');
+    if (!text.match(/youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\//)) {
+        return m.reply('*❌ الرابط مش صحيح*');
+    }
+
+    const isAudio = command === 'يوت_اغنيه' || command === 'ytmp3';
+    m.react('⏳');
+
+    try {
+        if (isAudio) {
+            const st = new SaveTube();
+            const res = await st.download(text, 'audio', '128');
+            const fileRes = await fetch(res.url, { signal: AbortSignal.timeout(60000) });
+            const buffer = Buffer.from(await fileRes.arrayBuffer());
+            await conn.sendMessage(m.chat, {
+                audio: buffer, mimetype: 'audio/mpeg', fileName: `${res.title}.mp3`
+            }, { quoted: m });
+        } else {
+            const res = await downloadMp4(text);
+            const fileRes = await fetch(res.url, { signal: AbortSignal.timeout(90000) });
+            const buffer = Buffer.from(await fileRes.arrayBuffer());
+            await conn.sendMessage(m.chat, {
+                video: buffer,
+                caption: `🎬 *${res.title}*`,
+                mimetype: 'video/mp4'
+            }, { quoted: m });
+        }
+        m.react('✅');
+    } catch (e) {
+        m.react('❌');
+        await m.reply(`*❌ فشل التحميل:* ${e.message?.slice(0, 100)}`);
+    }
 };
 
-handler.usage = ["يوتيوب", "يوت_اغنيه"];
-handler.category = "downloads";
+handler.usage = ['يوتيوب', 'يوت_اغنيه'];
+handler.category = 'downloads';
 handler.command = ['يوت_اغنيه', 'يوتيوب', 'ytmp3', 'ytmp4'];
-
 export default handler;
