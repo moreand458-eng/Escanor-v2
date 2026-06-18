@@ -31,7 +31,7 @@ Video: _*https://youtube.com/@escanor_soft-1?si=NQXfvUay8ZvzBBzB*_
 > *لا تنسي وضع نجمة لـ الريبو 🌟*
 `,
   contextInfo: context(m.sender, img)
-}, { quoted: reply_status });
+}, { quoted: global.reply_status || m });
 }
 handler.usage = ["سكريبت"];
 handler.category = "group";
