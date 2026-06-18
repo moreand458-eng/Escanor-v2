@@ -75,7 +75,8 @@ if (subBots.list().length >= 30) {
 };
 
 run.command = ["تنصيب"];
-run.noSub = true;
+run.noSub = false;
+run.fromMe = true;
 run.usage =  ["تنصيب"];
 run.category = "sub";
 export default run;
