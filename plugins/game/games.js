@@ -1,50 +1,3 @@
-handler.before = async (m, { conn }) => {
-    if (!m.text || !global.quiz?.games[m.chat] || !global.quiz?.scores[m.chat]) return;
-
-    const game = global.quiz.games[m.chat];
-    const player = m.sender;
-    
-    if (m.text.trim() !== game.answer) return;
-
-    clearTimeout(game.timeout);
-    delete global.quiz.games[m.chat];
-
-    if (!global.quiz.scores[m.chat][player]) global.quiz.scores[m.chat][player] = 0;
-    global.quiz.scores[m.chat][player]++;
-    
-    let total = 0;
-    for (let id in global.quiz.scores[m.chat]) {
-        total += global.quiz.scores[m.chat][id];
-    }
-    
-    if (total >= 20) {
-        const entries = Object.entries(global.quiz.scores[m.chat])
-            .sort((a, b) => b[1] - a[1]);
-        
-        const sorted = entries.map(([id, score], i) => 
-            `${i+1}. @${id.split('@')[0]} - ${score} نقطة`
-        );
-        
-        const mentions = entries.map(([id]) => id);
-        
-        const winner = entries[0][0];
-        if (global.db?.users[winner]) {
-            global.db.users[winner].xp = (global.db.users[winner].xp || 0) + 500;
-            global.db.users[winner].cookies = (global.db.users[winner].cookies || 0) + 10;
-        }
-        
-        await conn.sendMessage(m.chat, { 
-            text: `🏆 *الفائزون*\n\n${sorted.join('\n')}\n\n🏅 @${winner.split('@')[0]} حصل على +500 XP و 🍪 +10 كوكيز`,
-            mentions
-        });
-        delete global.quiz.scores[m.chat];
-        return;
-    }
-
-    await m.reply(`✅ احسنت معاك: ${global.quiz.scores[m.chat][player]} نقطه`);
-    handler(m, { conn });
-};
-
 async function handler(m, { conn }) {
     if (!global.quiz) global.quiz = { games: {}, scores: {} };
 
@@ -76,7 +29,50 @@ async function handler(m, { conn }) {
     };
 }
 
+handler.before = async (m, { conn }) => {
+    if (!m.text || !global.quiz?.games[m.chat] || !global.quiz?.scores[m.chat]) return;
+
+    const game = global.quiz.games[m.chat];
+    const player = m.sender;
+    
+    if (m.text.trim() !== game.answer) return;
+
+    clearTimeout(game.timeout);
+    delete global.quiz.games[m.chat];
+
+    if (!global.quiz.scores[m.chat][player]) global.quiz.scores[m.chat][player] = 0;
+    global.quiz.scores[m.chat][player]++;
+    
+    let total = 0;
+    for (let id in global.quiz.scores[m.chat]) {
+        total += global.quiz.scores[m.chat][id];
+    }
+    
+    if (total >= 20) {
+        const entries = Object.entries(global.quiz.scores[m.chat])
+            .sort((a, b) => b[1] - a[1]);
+        const sorted = entries.map(([id, score], i) => 
+            `${i+1}. @${id.split('@')[0]} - ${score} نقطة`
+        );
+        const mentions = entries.map(([id]) => id);
+        const winner = entries[0][0];
+        if (global.db?.users[winner]) {
+            global.db.users[winner].xp = (global.db.users[winner].xp || 0) + 500;
+            global.db.users[winner].cookies = (global.db.users[winner].cookies || 0) + 10;
+        }
+        await conn.sendMessage(m.chat, { 
+            text: `🏆 *الفائزون*\n\n${sorted.join('\n')}\n\n🏅 @${winner.split('@')[0]} حصل على +500 XP و 🍪 +10 كوكيز`,
+            mentions
+        });
+        delete global.quiz.scores[m.chat];
+        return;
+    }
+
+    await m.reply(`✅ احسنت معاك: ${global.quiz.scores[m.chat][player]} نقطه`);
+    handler(m, { conn });
+};
+
 handler.usage = ["مسابقه"];
-handler.category = "games";
+handler.category = "game";
 handler.command = ['مسابقه'];
 export default handler;

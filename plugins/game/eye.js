@@ -116,5 +116,5 @@ handler.before = async (m, { conn }) => {
 
 handler.command = ['عين', 'eye'];
 handler.usage = ['عين'];
-handler.category = "games";
+handler.category = "game";
 export default handler;
