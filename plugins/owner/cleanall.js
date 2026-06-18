@@ -1,6 +1,8 @@
 import { execSync } from "child_process";
 
-const handler = async (m, { conn }) => {
+const handler = async (m, { conn, bot }) => {
+    const isOwner = bot.config.owners.some(o => m.sender === o.jid || m.sender === o.lid);
+    if (!isOwner) return m.reply("*❌ الأمر ده للمطورين فقط*");
   try {
     m.react("🧹");
     await m.reply("*🧹 جاري التنظيف الشامل...*");
@@ -56,7 +58,7 @@ const handler = async (m, { conn }) => {
 handler.command = ["تنظيف_شامل"];
 handler.usage = ["تنظيف_شامل"];
 handler.category = "owner";
-handler.owner = true;
+handler.owner = false;
 handler.disabled = false;
 
 export default handler;

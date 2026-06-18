@@ -8,6 +8,7 @@ const handler = async (m, { conn, bot, text, command }) => {
         if (!text) return m.reply(
 `_🕸 طريقه الاستخدام_ — *.${command} اسم_الملف*
 > مثال : .${command} menu`
+        );
 
         const base = bot.config?.commandsPath || './plugins';
         const targetName = text.trim().replace(/\.js$/, '');

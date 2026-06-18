@@ -4,9 +4,9 @@ const handler = async (m, { conn }) => {
 
     if (!/image/.test(mime)) {
         return m.reply('🖼️ ~ رد على صورة لتغيير صورة البوت');
-    }=>
-     const jid = conn.user.id.split(":")[0] + "@s.whatsapp.net";
-
+    }
+    
+    const jid = conn.user.id.split(":")[0] + "@s.whatsapp.net";
 
     try {
         const media = await q.download();
