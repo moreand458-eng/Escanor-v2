@@ -3,7 +3,7 @@
 # 🌑 𝗘 𝗦 𝗖 𝗔 𝗡 𝗢 𝗥  -  𝗪 𝗔 𝗕 𝗢 𝗧 🌑
 ### ⟨ بــوت واتــســاب الــســيــبــرانــي ⟩
 
-<img src="https://i.postimg.cc/HxjS4qx2/aa58a61ac0b2d8c8d768ff8b86edd273.jpg" alt="ESCANOR CYBER" width="550" style="border-radius: 15px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);"/>
+<img src="https://i.postimg.cc/SQc4BV5D/e69588cea343ad7033d13f1bf282ed9d.jpg" alt="ESCANOR CYBER" width="550" style="border-radius: 15px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);"/>
 
 <br><br>
 
@@ -40,8 +40,8 @@
 ```bash
 termux-setup-storage
 pkg update -y && pkg upgrade -y
-pkg install git nodejs -y
-git clone [https://github.com/moreand458-eng/Escanor-bot.git](https://github.com/moreand458-eng/Escanor-bot.git)
+pkg install git nodejs ffmpeg -y
+git clone https://github.com/moreand458-eng/Escanor-bot.git
 cd Escanor-bot
 npm install
 npm start
