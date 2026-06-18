@@ -1,5 +1,5 @@
-import { Scrapy } from "esewsub";
-import { gifToMp4 } from "../../system/utils.js";
+import { gifToMp4, AnimeGif } from "../../system/utils.js";
+
 
 let handler = async (m, { conn }) => {
     try {
@@ -11,8 +11,8 @@ let handler = async (m, { conn }) => {
             return m.reply(`*🕸️ ~ العضو مش في الجروب*`);
         }
 
-        const res = await Scrapy.AnimeGif("laugh");
-        const { url, anime_name } = res.results[0];
+        const res = await AnimeGif("laugh");
+        const { url, anime_name } = res;
         const video = await gifToMp4(url);
         
         await conn.sendMessage(m.chat, {
