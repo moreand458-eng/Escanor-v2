@@ -14,7 +14,7 @@ const handler = async (m, { conn }) => {
 
 handler.command = ["الألقاب"];
 handler.usage =  ["الألقاب"];
-handler.category = "nicknames";
+handler.category = "guilds";
 handler.admin = true;
 handler.group = true;
 export default handler;
