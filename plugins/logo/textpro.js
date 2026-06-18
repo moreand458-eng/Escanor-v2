@@ -1,7 +1,7 @@
 import axios from "axios";
 
 let handler = async (m, { conn, text, command }) => {
-  if (!text) return m.reply(`🍭 مثال:\n.${command} venom`);
+  if (!text) return m.reply(`🍭 مثال:\n.${command} *escanor*`);
 
   let effect = "";
 
@@ -138,7 +138,7 @@ const logos = [
 ];
 
 handler.command = logos;
-handler.category = "logos";
+handler.category = "sticker";
 handler.usage = logos;
 
 export default handler;
