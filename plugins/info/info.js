@@ -53,13 +53,13 @@ const handler = async (m, { conn, bot, config }) => {
 
 ——> *الـمـالـكـيـن 👑*
 - *العدد:* \`${bot.owners?.length || 0}\`
-- *الرئيسي:* \`${bot.owners?.[0]?.name || 'VA'} (${bot.owners?.[0]?.jid?.split('@')[0] || 'لا يوجد'})\`
+- *الرئيسي:* \`${bot.owners?.[0]?.name || '𝐄𝐒𝐂𝐀𝐍𝛩𝐑'} (${bot.owners?.[0]?.jid?.split('@')[0] || 'لا يوجد'})\`
 
 > *_ESC BOT SYSTEM_*`;
 
   await conn.sendMessage(m.chat, {
     text: msg,
-    contextInfo: context(m.sender, "https://i.postimg.cc/HxjS4qx2/aa58a61ac0b2d8c8d768ff8b86edd273.jpg") }, { quoted: reply_status });
+    contextInfo: context(m.sender, "https://i.postimg.cc/HxjS4qx2/aa58a61ac0b2d8c8d768ff8b86edd273.jpg") }, { quoted: global.reply_status || m });
 };
 
 handler.command = ["معلومات", "info", "botinfo", "حالة"];
