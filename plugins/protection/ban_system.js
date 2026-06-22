@@ -1,76 +1,17 @@
 // نظام الحظر - يشتغل مع المطورين والادمنز على الرئيسي والفرعي
-
-const getG = (chatId) => {
-    if (!global._gs) global._gs = {};
-    if (!global._gs[chatId]) global._gs[chatId] = {};
-    return global._gs[chatId];
-};
-
-const isOwnerFn = (id, bot, conn) => {
-    const owners = bot?.config?.owners || global._mainOwners || [];
-    const botJid = conn?.user?.id?.split(':')[0] + '@s.whatsapp.net';
-    return (
-        owners.some(o => o.jid === id || o.lid === id) ||
-        id === botJid ||
-        id?.split(':')[0] + '@s.whatsapp.net' === botJid
-    );
-};
-
-const canUse = (m, bot, conn) =>
-    isOwnerFn(m.sender, bot, conn) || m.isAdmin || m.isSuperAdmin;
-
-// ===== مساعد: جيب الرقم الأساسي من أي id =====
-const numOf = (id) => id?.split('@')[0]?.split(':')[0] || '';
-
-// ===== مساعد: شوف لو id موجود في قائمة (بيقارن بالرقم) =====
-const isInList = (list, id) => {
-    if (!list?.length || !id) return false;
-    const n = numOf(id);
-    return list.some(u => u === id || numOf(u) === n);
-};
-
-// ===== مساعد: امسح id من قائمة (بيمسح كل التطابقات بالرقم) =====
-const removeFromList = (list, id) => {
-    if (!list?.length || !id) return list || [];
-    const n = numOf(id);
-    return list.filter(u => u !== id && numOf(u) !== n);
-};
-
-// ===== updateParticipant محسنة - بتجرب lid وjid البديل =====
-const updateParticipant = async (chat, target, action, conn) => {
-    let meta;
-    try { meta = await conn.groupMetadata(chat); } catch { meta = null; }
-
-    const targetNum = numOf(target);
-    const found = meta?.participants?.find(p => {
-        return p.id === target || p.lid === target || p.jid === target || numOf(p.id) === targetNum;
-    });
-
-    const candidates = [...new Set([
-        found?.id,
-        found?.lid,
-        found?.jid,
-        target
-    ].filter(Boolean))];
-
-    let lastErr;
-    for (const id of candidates) {
-        try {
-            await conn.groupParticipantsUpdate(chat, [id], action);
-            return { ok: true };
-        } catch (e) {
-            lastErr = e;
-            const msg = String(e?.message || e?.toString?.() || '').toLowerCase();
-            const code = e?.output?.statusCode || e?.status;
-            if (!(msg.includes('forbidden') || code === 403)) break;
-        }
-    }
-    return { ok: false, error: lastErr };
-};
+import { getG, isOwnerFn, canUseAdminCmd, isInList, removeFromList, updateParticipant } from '../../system/admin_utils.js';
+import { adminGuard, checkCommandCooldown, notAuthMsg, notAdminMsg, isBotActualAdmin } from '../../system/bot_protection.js';
 
 const handler = async (m, { conn, command, bot }) => {
     if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
-    if (!canUse(m, bot, conn)) return m.reply('*「🔥」 الامـر دا بـتـاع الادمـن بـس*');
+
+    // Live check: تحديث isBotAdmin/isAdmin
+    await adminGuard(m, { conn, bot });
+
+    const cooldown = checkCommandCooldown(command, m.sender, m.chat);
+    if (!cooldown.allowed) return m.reply(`*⏳ استنى ${Math.ceil(cooldown.waitMs / 1000)} ثانية*`);
+
+    if (!canUseAdminCmd(m, bot, conn)) return m.reply(notAuthMsg());
 
     const g = getG(m.chat);
     const target = m.mentionedJid?.[0] || m.quoted?.sender;
@@ -78,7 +19,7 @@ const handler = async (m, { conn, command, bot }) => {
     // ===== حظر =====
     if (command === 'ban' || command === 'حظر') {
         if (!target) return m.reply('*منشن العضو أو رد على رسالته*');
-        if (isOwnerFn(target, bot, conn)) return m.reply('*❌ لا يمكن حظر المطور*');
+        if (isOwnerFn(target, bot, conn)) return m.reply('*مـقِـدرش احـظـر مـطِـوَري「🩸」*');
         if (!g.banned) g.banned = [];
 
         if (isInList(g.banned, target)) return conn.sendMessage(m.chat, {
@@ -90,6 +31,8 @@ const handler = async (m, { conn, command, bot }) => {
         if (m.isBotAdmin) {
             const res = await updateParticipant(m.chat, target, 'remove', conn);
             if (!res.ok) console.log('[ban] remove failed:', res.error?.message);
+        } else {
+            await m.reply(notAdminMsg());
         }
 
         return conn.sendMessage(m.chat, {
@@ -132,10 +75,10 @@ handler.before = async (m, { conn, bot }) => {
     if (!g?.banned?.length) return false;
     if (isOwnerFn(m.sender, bot, conn)) return false;
 
-    // بيقارن بالرقم مش exact match
     if (!isInList(g.banned, m.sender)) return false;
 
-    if (!m.isBotAdmin) return false;
+    const isBotAdminNow = await isBotActualAdmin(m.chat, conn).catch(() => m.isBotAdmin);
+    if (!isBotAdminNow) return false;
 
     try {
         const res = await updateParticipant(m.chat, m.sender, 'remove', conn);

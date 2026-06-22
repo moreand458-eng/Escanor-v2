@@ -1,4 +1,7 @@
 // تحكم في كل المضادات بأمر واحد
+import { canUseAdminCmd } from '../../system/admin_utils.js';
+import { adminGuard, notAuthMsg } from '../../system/bot_protection.js';
+
 const getG = (chatId) => {
     if (!global._gs) global._gs = {};
     if (!global._gs[chatId]) global._gs[chatId] = {};
@@ -16,9 +19,15 @@ const ANTI_MAP = {
     'anti-media':   'antiMedia',
     'anti-sticker': 'antiSticker',
     'anti-audio':   'antiAudio',
+    'anti-contact': 'antiContact',
 };
 
-const handler = async (m, { conn, command, text }) => {
+const handler = async (m, { conn, command, text, bot }) => {
+    if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
+
+    await adminGuard(m, { conn, bot });
+    if (!canUseAdminCmd(m, bot, conn)) return m.reply(notAuthMsg());
+
     const g = getG(m.chat);
     const key = ANTI_MAP[command];
     if (!key) return;
@@ -36,7 +45,8 @@ const handler = async (m, { conn, command, text }) => {
             antiTag: '🏷️ مضاد المنشن الجماعي', antiFake: '📵 مضاد الأرقام الوهمية',
             antiBots: '🤖 مضاد البوتات', antiDelete: '🗑️ كشف الرسائل المحذوفة',
             antiEdit: '✏️ كشف التعديل', antiMedia: '🖼️ مضاد الميديا',
-            antiSticker: '🎭 مضاد الستيكر', antiAudio: '🔉 مضاد الصوت'
+            antiSticker: '🎭 مضاد الستيكر', antiAudio: '🔉 مضاد الصوت',
+            antiContact: '📇 مضاد جهات الاتصال'
         };
         return m.reply(`✅ *تم تفعيل ${names[key] || key}*`);
     }
@@ -49,7 +59,7 @@ const handler = async (m, { conn, command, text }) => {
     return m.reply('*استخدام:* .anti-link on/off');
 };
 
-handler.command  = ['anti-link','anti-spam','anti-tag','anti-fake','anti-bot','anti-delete','anti-edit','anti-media','anti-sticker','anti-audio'];
+handler.command  = ['anti-link','anti-spam','anti-tag','anti-fake','anti-bot','anti-delete','anti-edit','anti-media','anti-sticker','anti-audio','anti-contact'];
 handler.usage    = ['anti-link on/off'];
 handler.admin    = true;
 handler.category = 'protection';

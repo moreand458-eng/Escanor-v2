@@ -1,6 +1,7 @@
 // أمر الكتم - mute / كتم / صامت
 import { getG, isOwnerFn, canUseAdminCmd, isInList } from '../../system/admin_utils.js';
 import { adminGuard, checkCommandCooldown, notAuthMsg } from '../../system/bot_protection.js';
+import { logAndDeleteMessage } from '../../system/content_control.js';
 
 const handler = async (m, { conn, bot }) => {
     if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
@@ -45,7 +46,7 @@ handler.before = async (m, { conn, bot }) => {
 
     if (!isInList(muteList, m.sender)) return false;
 
-    try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+    await logAndDeleteMessage(m, conn, 'مكتوم في الجروب 🔇');
     return true;
 };
 

@@ -1,8 +1,11 @@
 // نظام البلاغات والأدمن
-const isOwner = (id, bot) => bot?.config?.owners?.some(o => o.jid === id || o.lid === id);
+import { canUseAdminCmd } from '../../system/admin_utils.js';
+import { adminGuard, notAuthMsg } from '../../system/bot_protection.js';
 
 const handler = async (m, { conn, command, text, bot }) => {
+    if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
 
+    // ===== report/admins/groupinfo - متاحة لكل الأعضاء =====
     if (command === 'report' || command === 'بلاغ') {
         const target = m.mentionedJid?.[0] || m.quoted?.sender;
         if (!target) return m.reply('*منشن العضو أو رد على رسالته*');
@@ -67,7 +70,11 @@ const handler = async (m, { conn, command, text, bot }) => {
         return;
     }
 
+    // ===== listwarn - أدمن فقط =====
     if (command === 'listwarn' || command === 'كل_الانذارات') {
+        await adminGuard(m, { conn, bot });
+        if (!canUseAdminCmd(m, bot, conn)) return m.reply(notAuthMsg());
+
         const warnings = global._gs?.[m.chat]?.warnings || {};
         const list = Object.entries(warnings).filter(([, v]) => v > 0);
         if (!list.length) return m.reply('*✅ لا يوجد إنذارات*');
@@ -83,6 +90,5 @@ const handler = async (m, { conn, command, text, bot }) => {
 
 handler.command  = ['report', 'بلاغ', 'admins', 'الادمنية', 'groupinfo', 'info_group', 'listwarn', 'كل_الانذارات'];
 handler.usage    = ['report', 'admins', 'groupinfo'];
-handler.admin    = true;
 handler.category = 'protection';
 export default handler;

@@ -1,11 +1,19 @@
 // نظام البلاك ليست - كلمات ممنوعة وأرقام ممنوعة
+import { canUseAdminCmd } from '../../system/admin_utils.js';
+import { adminGuard, notAuthMsg } from '../../system/bot_protection.js';
+
 const getG = (chatId) => {
     if (!global._gs) global._gs = {};
     if (!global._gs[chatId]) global._gs[chatId] = {};
     return global._gs[chatId];
 };
 
-const handler = async (m, { conn, command, text }) => {
+const handler = async (m, { conn, command, text, bot }) => {
+    if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
+
+    await adminGuard(m, { conn, bot });
+    if (!canUseAdminCmd(m, bot, conn)) return m.reply(notAuthMsg());
+
     const g = getG(m.chat);
     if (!g.blacklist) g.blacklist = [];
 

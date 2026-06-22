@@ -2,6 +2,8 @@
 // Level 1: حماية عادية
 // Level 2: حماية متوسطة
 // Level 3: حماية صارمة
+import { canUseAdminCmd } from '../../system/admin_utils.js';
+import { adminGuard, notAuthMsg } from '../../system/bot_protection.js';
 
 const LEVELS = {
     1: { name: 'عادية 🟢', antiLink: false, antiSpam: true, antiBot: true, antiTag: false, antiFake: false, warnBeforeKick: true, maxWarnings: 3 },
@@ -15,12 +17,18 @@ const getG = (chatId) => {
     return global._gs[chatId];
 };
 
-const handler = async (m, { conn, command, text }) => {
+const handler = async (m, { conn, command, text, bot }) => {
+    if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
+
     const g = getG(m.chat);
 
     if (command === 'security' || command === 'مستوى_الحماية') {
-        const level = parseInt(text?.trim());
-        if (!level || !LEVELS[level]) {
+        const rawArg = text?.trim();
+        const hasArg = rawArg !== undefined && rawArg !== '';
+        const level = hasArg ? parseInt(rawArg) : NaN;
+
+        // عرض الحالة الحالية - متاح للكل (لو مفيش رقم خالص أو رقم غلط)
+        if (!hasArg || Number.isNaN(level) || (level !== 0 && !LEVELS[level])) {
             const current = g.securityLevel || 0;
             return m.reply(
                 `🛡️ *نظام الحماية*\n\n` +
@@ -32,6 +40,10 @@ const handler = async (m, { conn, command, text }) => {
                 `*.security 0* → إيقاف الحماية`
             );
         }
+
+        // تغيير المستوى - أدمن فقط
+        await adminGuard(m, { conn, bot });
+        if (!canUseAdminCmd(m, bot, conn)) return m.reply(notAuthMsg());
 
         if (level === 0) {
             g.securityLevel = null;
@@ -70,6 +82,5 @@ const handler = async (m, { conn, command, text }) => {
 
 handler.command  = ['security', 'مستوى_الحماية', 'حماية'];
 handler.usage    = ['security 1/2/3'];
-handler.admin    = true;
 handler.category = 'protection';
 export default handler;
