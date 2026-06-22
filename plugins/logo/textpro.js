@@ -138,7 +138,7 @@ const logos = [
 ];
 
 handler.command = logos;
-handler.category = "sticker";
+handler.category = "logos";
 handler.usage = logos;
 
 export default handler;
