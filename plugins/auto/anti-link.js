@@ -1,4 +1,5 @@
 const getG = (chatId) => global._gs?.[chatId] || {};
+import { logAndDeleteMessage } from '../../system/content_control.js';
 
 const addWarning = async (chat, sender, conn, reason) => {
     if (!global._gs) global._gs = {};
@@ -47,7 +48,7 @@ export default async function before(m, { conn, bot }) {
     const linkRegex = /https?:\/\/[^\s]+|www\.[^\s]+|chat\.whatsapp\.com\/[A-Za-z0-9]+/gi;
     if (!linkRegex.test(text)) return false;
 
-    try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+    await logAndDeleteMessage(m, conn, 'نشر رابط 🔗', { silent: true });
     await addWarning(m.chat, m.sender, conn, 'نشر رابط 🔗');
     return true;
 }

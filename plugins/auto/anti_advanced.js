@@ -1,4 +1,5 @@
 // مضادات متقدمة: spam, tag, fake, delete, edit, flood
+import { logAndDeleteMessage } from '../../system/content_control.js';
 const getG = (chatId) => global._gs?.[chatId] || {};
 const isOwner = (id, bot) => bot?.config?.owners?.some(o => o.jid === id || o.lid === id);
 
@@ -62,6 +63,7 @@ export default async function before(m, { conn, bot }) {
             if (track.count >= 5) {
                 spamTracker.delete(key);
                 try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+                await logAndDeleteMessage(m, conn, 'إزعاج/سبام 📢', { silent: true });
                 await warn(m.chat, m.sender, conn, 'إزعاج/سبام 📢');
                 return true;
             }
@@ -76,6 +78,7 @@ export default async function before(m, { conn, bot }) {
         const mentions = m.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
         if (mentions.length >= 5) {
             try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+            await logAndDeleteMessage(m, conn, 'منشن جماعي 🏷️', { silent: true });
             await warn(m.chat, m.sender, conn, 'منشن جماعي 🏷️');
             return true;
         }
@@ -96,7 +99,29 @@ export default async function before(m, { conn, bot }) {
         const text = m.text || m.body || '';
         if (text.length > 1000) {
             try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+            await logAndDeleteMessage(m, conn, 'رسالة طويلة جداً 📝', { silent: true });
             await warn(m.chat, m.sender, conn, 'رسالة طويلة جداً 📝');
+            return true;
+        }
+    }
+
+    // ===== مضاد جهات الاتصال (anti-contact) =====
+    if (g.antiContact) {
+        // كشف رسائل جهات الاتصال (vcard)
+        const isContact = !!(
+            m.message?.contactMessage ||
+            m.message?.contactsArrayMessage
+        );
+
+        // كشف أرقام التليفون في النص
+        const text = m.text || m.body || m.message?.extendedTextMessage?.text || m.message?.conversation || '';
+        const phoneRegex = /(?:\+|00)?[\d\s\-().]{7,20}(?:\d)/;
+        const hasPhone = phoneRegex.test(text.replace(/[^\d+\s\-().]/g, ' ').trim()) && /\d{7,}/.test(text.replace(/\D/g, ''));
+
+        if (isContact || hasPhone) {
+            try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+            await logAndDeleteMessage(m, conn, 'إرسال جهة اتصال/رقم تليفون 📇', { silent: true });
+            await warn(m.chat, m.sender, conn, 'إرسال جهة اتصال/رقم تليفون 📇');
             return true;
         }
     }
