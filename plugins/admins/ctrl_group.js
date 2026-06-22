@@ -1,38 +1,53 @@
-// أمر قفل وفتح الجروب
-import { adminGuard, checkCommandCooldown, notAdminMsg } from '../../system/bot_protection.js';
+// أمر قفل وفتح الجروب + قفل/تجديد الرابط (موحّد - بديل lock_controls.js)
+import { adminGuard, checkCommandCooldown, notAdminMsg, notAuthMsg } from '../../system/bot_protection.js';
 
 const handler = async (m, { conn, command, bot }) => {
   if (!m.isGroup) return m.reply('*❌ في الجروبات بس*');
-  
+
   // Live check: تحديث الـ isBotAdmin من جديد
   await adminGuard(m, { conn, bot });
-  
+
   // فحص cooldown
   const cooldown = checkCommandCooldown(command, m.sender, m.chat);
   if (!cooldown.allowed) {
     return m.reply(`*⏳ استنى ${Math.ceil(cooldown.waitMs / 1000)} ثانية*`);
   }
-  
+
+  if (!m.isAdmin) return m.reply(notAuthMsg());
   if (!m.isBotAdmin) return m.reply(notAdminMsg());
-  if (!m.isAdmin) return m.reply('*「🔥」 الامـر دا بـتـاع الادمـن بـس يـسـطـا*');
-  
+
   try {
-    if (command === "قفل") {
+    if (command === "قفل" || command === "lock" || command === "قفل_الجروب") {
       await conn.groupSettingUpdate(m.chat, 'announcement');
-      m.reply('🔒 *تم قفل الشات* 🔒');
-    } else if (command === "فتح") {
+      return m.reply('🔒 *تم قفل الشات* 🔒\nفقط الادمنية يمكنهم الإرسال');
+    }
+
+    if (command === "فتح" || command === "unlock" || command === "فتح_الجروب") {
       await conn.groupSettingUpdate(m.chat, 'not_announcement');
-      m.reply('🔓 *تم فتح الشات* 🔓');
+      return m.reply('🔓 *تم فتح الشات* 🔓\nالكل يمكنه الإرسال');
+    }
+
+    if (command === "lock-link" || command === "قفل_الرابط") {
+      await conn.groupSettingUpdate(m.chat, 'locked');
+      return m.reply('🔒 *تم قفل رابط الجروب*\nفقط الادمنية يمكنهم تعديل الإعدادات');
+    }
+
+    if (command === "reset-link" || command === "تجديد_الرابط") {
+      await conn.groupRevokeInvite(m.chat);
+      const code = await conn.groupInviteCode(m.chat);
+      return conn.sendMessage(m.chat, {
+        text: `🔄 *تم تجديد رابط الجروب*\n\nhttps://chat.whatsapp.com/${code}`
+      }, { quoted: m });
     }
   } catch (e) {
-    m.reply(`*❌ خطأ: ${e.message || 'فشل تنفيذ الأمر'}*`);
+    return m.reply(`*❌ خطأ: ${e.message || 'فشل تنفيذ الأمر - تأكد إن البوت ادمن'}*`);
   }
 };
 
-handler.usage = ["قفل", "فتح"];
-handler.category = "admins";
-handler.command = ["قفل", "فتح"];
-handler.admin = true;
+handler.usage    = ["قفل", "فتح", "lock-link", "reset-link"];
+handler.category = "protection";
+handler.command  = ["قفل", "فتح", "lock", "unlock", "lock-link", "reset-link", "قفل_الجروب", "فتح_الجروب", "قفل_الرابط", "تجديد_الرابط"];
+handler.admin    = true;
 handler.botAdmin = true;
 
 export default handler;
