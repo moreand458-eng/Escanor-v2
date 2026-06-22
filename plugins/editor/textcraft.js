@@ -66,6 +66,6 @@ const handler = async (m, { conn, text, command }) => {
 
 handler.usage = ['نص_تأثير'];
 handler.command = ['نص_تأثير', 'textcraft', 'glowtext'];
-handler.category = 'editor';
+handler.category = 'logos';
 
 export default handler;

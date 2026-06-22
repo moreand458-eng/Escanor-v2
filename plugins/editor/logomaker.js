@@ -58,6 +58,6 @@ const handler = async (m, { conn, text, command }) => {
 
 handler.usage = ['لوجو'];
 handler.command = ['لوجو', 'logomaker', 'glowtxt'];
-handler.category = 'editor';
+handler.category = 'logos';
 
 export default handler;
