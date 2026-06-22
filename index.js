@@ -1,21 +1,12 @@
 import { Client } from 'esewsub';
+import http from 'http';
+import https from 'https';
 import autoJoinChannel from './libs/auto-join-channel.js';
 import BotDetector from './libs/bot-detector.js';
 import { group, access } from "./system/control.js";
 import UltraDB from "./system/UltraDB.js";
 import keepServerAlive from './system/keep_alive.js';
 import sub from './sub.js';
-
-/* =========== منع إيقاف السيرفر نهائياً ========== */
-// بيمسك كل الإشارات اللي بتوقف البوت
-process.removeAllListeners('SIGINT');
-process.removeAllListeners('SIGTERM');
-process.removeAllListeners('SIGHUP');
-process.removeAllListeners('exit');
-
-process.on('SIGINT',  () => console.log('🛡️ SIGINT blocked'));
-process.on('SIGTERM', () => console.log('🛡️ SIGTERM blocked'));
-process.on('SIGHUP',  () => console.log('🛡️ SIGHUP blocked'));
 
 /* =========== Database ========== */
 if (!global.db) global.db = new UltraDB();
@@ -27,9 +18,9 @@ const client = new Client({
     fromMe: false,
     owners: [
         { name: '𝑬𝑺𝑪𝑨𝑵𝑶𝑹',    lid: '275561477836913@lid', jid: '201092178171@s.whatsapp.net' },
-        { name: '𝑬𝒔ᥴ𝒂ꪀ𝒐𝒓',      lid: '221307316789354@lid', jid: '584167505128@s.whatsapp.net' },
+        { name: '𝖣َِ𝖠َِ𝖱َِ𝖪',      lid: '221307316789354@lid', jid: '201500440718@s.whatsapp.net' },
         { name: '𝑮𝒐𝒋𝒐 𝑺𝒂𝒕𝒐𝒓𝒖', lid: '',                    jid: '201286691232@s.whatsapp.net' },
-        { name: '𝑫𝒖𝒍𝒂𝒄𝒆𝒄𝒂',     lid: '',                    jid: '201094212216@s.whatsapp.net' },
+        { name: '𝐀𝐟𝐫𝐨𝐭𝐨',     lid: '',                    jid: '201140184231@s.whatsapp.net' },
         { name: '-  𝑹𝐼𝑴  •',    lid: '92415666974724@lid',  jid: '963968077296@s.whatsapp.net' }
     ],
     settings: {},
@@ -39,7 +30,16 @@ const client = new Client({
     maxReconnectAttempts: 999999,
 });
 
-/* =========== حمل المطورين + شيل secondary ========== */
+/* =========== منع إيقاف السيرفر نهائياً 🛡️ ========== */
+process.removeAllListeners('SIGINT');
+process.removeAllListeners('SIGTERM');
+process.removeAllListeners('SIGHUP');
+
+process.on('SIGINT',  () => console.log('🛡️ SIGINT received - تم تجاهلها، السيرفر فاضل شغال'));
+process.on('SIGTERM', () => console.log('🛡️ SIGTERM received - تم تجاهلها، السيرفر فاضل شغال'));
+process.on('SIGHUP',  () => console.log('🛡️ SIGHUP received - تم تجاهلها، السيرفر فاضل شغال'));
+
+/* =========== حمّل المطورين + شيل secondary ========== */
 try {
     const extra = global.db?.data?.extraOwners || [];
     if (extra.length) {
@@ -73,23 +73,44 @@ client.config.info = {
     ]
 };
 
+/* =========== 🌐 HTTP Keep-Alive Server (لمنع النوم على الاستضافة) ========== */
+const PORT = process.env.PORT || 3000;
+
+const httpServer = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('🤖 ESCANOR BOT - Online ✅');
+});
+
+httpServer.listen(PORT, () => {
+    console.log(`🌐 Keep-Alive server running on port ${PORT}`);
+});
+
+// Self-ping كل 4 دقايق عشان السيرفر ميناموش
+const APP_URL = process.env.APP_URL || ''; // حط رابط البوت هنا مثلاً: https://escanor.optikl.ink
+
+if (APP_URL) {
+    setInterval(() => {
+        const mod = APP_URL.startsWith('https') ? https : http;
+        mod.get(APP_URL, (res) => {
+            console.log(`🏓 Self-ping OK [${res.statusCode}]`);
+        }).on('error', () => {
+            console.log('⚠️ Self-ping failed - will retry next time');
+        });
+    }, 4 * 60 * 1000); // كل 4 دقايق
+    console.log(`🏓 Self-ping enabled → ${APP_URL}`);
+} else {
+    console.log('⚠️ APP_URL غير محدد - Self-ping معطّل (أضف APP_URL في env variables)');
+}
+
 /* =========== Pairing Code Notification ========== */
-// يبعت الـ pairing code كـ SMS أو WhatsApp message للمطور
-const OWNER_PHONE = '201092178171'; // رقم المطور يستقبل الكود
+const OWNER_PHONE = '201092178171';
 
 const sendPairingNotification = async (code) => {
-    // محاولة إرسال SMS عبر API مجاني
-    const apis = [
-        `https://api.callmebot.com/whatsapp.php?phone=${OWNER_PHONE}&text=ESCANOR+PAIRING+CODE:+${code}&apikey=`,
-    ];
-
-    // بعت الكود في console بشكل واضح
     console.log('\n' + '='.repeat(50));
     console.log(`🔑 PAIRING CODE: ${code}`);
     console.log(`📱 FOR NUMBER: 201505741613`);
     console.log('='.repeat(50) + '\n');
 
-    // لو في sock متصل ابعت لنفسك
     try {
         if (client.sock?.user) {
             const ownerJid = OWNER_PHONE + '@s.whatsapp.net';
@@ -100,13 +121,10 @@ const sendPairingNotification = async (code) => {
     } catch {}
 };
 
-// مراقبة الـ pairing code
 const checkPairingCode = setInterval(async () => {
     try {
         const sock = client.sock;
         if (!sock) return;
-
-        // hook على connection.update
         sock.ev?.on?.('connection.update', async (update) => {
             if (update?.qr || update?.pairingCode) {
                 const code = update.pairingCode || update.qr;
@@ -167,8 +185,6 @@ process.on('unhandledRejection', (e) => {
 });
 
 /* =========== منع process.exit ========== */
-const _exit = process.exit.bind(process);
 process.exit = (code) => {
     console.log(`🛡️ process.exit(${code}) blocked - server stays alive`);
-    // مش بنعمل exit
 };
