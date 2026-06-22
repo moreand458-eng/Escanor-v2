@@ -19,7 +19,7 @@ const toAudio = async (m, { conn }) => {
 
     fs.writeFileSync(video, await m.quoted.download());
 
-    await execAsync(`ffmpeg -i "${video}" -vn -acodec libmp3lame "${audio}" -y`);
+    await execAsync(`ffmpeg -i "${video}" -vn -acodec libmp3lame "${audio}" -y`, { maxBuffer: 1024 * 1024 * 50 });
 
     await conn.sendMessage(m.chat, { audio: fs.readFileSync(audio), mimetype: "audio/mpeg" }, { quoted: m });
 
