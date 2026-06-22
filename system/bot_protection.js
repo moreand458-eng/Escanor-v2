@@ -150,13 +150,12 @@ export const adminGuard = async (m, { conn, bot }) => {
         const liveBotAdmin  = await isBotActualAdmin(m.chat, conn);
         const liveUserAdmin = await isUserActualAdmin(m.sender, m.chat, conn);
 
-        // لو الفحص الـ live أكّد admin = true، نستخدمه
-        // لو رجع false، منرفضش القيمة الأصلية على طول (ممكن يكون فشل مطابقة LID)
-        // إلا لو كانت القيمة الأصلية undefined من الأساس
-        m.isBotAdmin = liveBotAdmin || (originalBotAdmin ?? false);
-        m.isUserAdmin = liveUserAdmin || (originalUserAdmin ?? false);
+        // الفحص الـ live نجح (مفيش استثناء) - نثق فيه بالكامل
+        // سواء النتيجة true أو false، لأنه فحص حقيقي ولحظي من واتساب
+        m.isBotAdmin = liveBotAdmin;
+        m.isUserAdmin = liveUserAdmin;
     } catch {
-        // لو حصل خطأ في الفحص الـ live، رجّع القيم الأصلية زي ما هي
+        // لو حصل خطأ فعلي في الفحص (فشل شبكة مثلاً)، رجّع القيم الأصلية زي ما هي
         m.isBotAdmin  = originalBotAdmin;
         m.isUserAdmin = originalUserAdmin;
     }
